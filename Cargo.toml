@@ -1,0 +1,9 @@
+[package]
+name = "cgpt-cmd"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+ureq = "2.6.2"
+dirs = "4.0.0"
+termcolor = "1.1"
