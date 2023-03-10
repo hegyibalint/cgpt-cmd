@@ -1,18 +1,48 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Display, Formatter};
 use std::fs;
 use std::io::ErrorKind;
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use std::io::{Error};
+use serde::{Serialize, Deserialize};
 
-struct Config {
-    api_key: String
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct Config {
+    pub api_key: String,
+    pub model: String,
 }
 
-pub fn load_config(path: &Path) -> Config {
-
+#[derive(Debug)]
+pub enum LoadingError {
+    IOError(Error),
+    ConfigNotFound(Error),
+    TomlParsingError(toml::de::Error),
 }
 
-pub fn get_config_file_path() -> Result<PathBuf, Error> {
+impl Display for LoadingError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ALALALALLALALAH")
+    }
+}
+
+pub fn load_config() -> Result<Config, LoadingError> {
+    let config_path = match get_config_file_path() {
+        Ok(path) => path,
+        Err(err) => return Err(LoadingError::IOError(err)),
+    };
+
+    let config_contents = match fs::read_to_string(config_path) {
+        Ok(contents) => contents,
+        Err(err) => return Err(LoadingError::ConfigNotFound(err))
+    };
+
+    return match toml::from_str(&config_contents) {
+        Ok(data) => Ok(data),
+        Err(err) => Err(LoadingError::TomlParsingError(err))
+    };
+}
+
+fn get_config_file_path() -> Result<PathBuf, Error> {
     let config_dir = get_config_dir_path()?;
     return Ok(config_dir.join("config.toml"));
 }
@@ -22,9 +52,4 @@ fn get_config_dir_path() -> Result<PathBuf, Error> {
         Some(config_dir) => Ok(config_dir.join("cgpt")),
         None => Err(Error::new(ErrorKind::NotFound, "Config directory cannot be determined"))
     }
-}
-
-fn create_config_dir() -> Result<(), Error> {
-    let config_dir = get_config_dir_path()?;
-    return fs::create_dir(config_dir);
 }
